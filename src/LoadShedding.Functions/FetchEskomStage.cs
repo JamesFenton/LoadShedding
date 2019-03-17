@@ -8,12 +8,13 @@ using Microsoft.Azure.WebJobs;
 using Microsoft.Extensions.Logging;
 using Microsoft.WindowsAzure.Storage.Blob;
 using Microsoft.WindowsAzure.Storage.Table;
+using Polly;
 
 namespace LoadShedding.Functions
 {
     public static class FetchEskomStage
     {
-        private static HttpClient _http = new HttpClient();
+        private static readonly HttpClient _http = new HttpClient();
 
         [FunctionName("FetchEskomStage")]
         public static async Task Run(
@@ -40,20 +41,34 @@ namespace LoadShedding.Functions
         // https://github.com/daffster/mypowerstats/blob/master/getshedding.py
         private static async Task<int> GetEskomStage()
         {
-            var eskomResponse = await _http.GetStringAsync("http://loadshedding.eskom.co.za/LoadShedding/GetStatus");
+            var retryPolicy = Policy
+                .Handle<Exception>()
+                .WaitAndRetryAsync(new[]
+                {
+                    TimeSpan.FromSeconds(1),
+                    TimeSpan.FromSeconds(10),
+                    TimeSpan.FromSeconds(60),
+            });
 
-            if (!Enum.TryParse(eskomResponse, true, out EskomLoadSheddingStage eskomStage))
-                throw new ArgumentException($"Cannot convert eskom response {eskomResponse}");
-            
-            return (int)eskomStage - 1;
-        }
+            var eskomResponse = await retryPolicy.ExecuteAsync(()
+                => _http.GetStringAsync("http://loadshedding.eskom.co.za/LoadShedding/GetStatus"));
 
-        private enum EskomLoadSheddingStage
-        {
-            None = 1,
-            Stage1 = 2,
-            Stage2 = 3,
-            Stage3 = 4,
+            // it returns "1" for stage 0, "2" for stage 1, "3" for stage 2 etc
+            switch (eskomResponse)
+            {
+                case "1":
+                    return 0;
+                case "2":
+                    return 1;
+                case "3":
+                    return 2;
+                case "4":
+                    return 3;
+                case "5":
+                    return 4;
+            }
+
+            throw new ArgumentException($"Cannot convert eskom response {eskomResponse}");
         }
     }
 }
