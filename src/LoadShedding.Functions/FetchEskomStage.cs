@@ -18,24 +18,39 @@ namespace LoadShedding.Functions
 
         [FunctionName("FetchEskomStage")]
         public static async Task Run(
-            [TimerTrigger("0 0 * * * *")]TimerInfo myTimer,                         // once per hour
-            [Table("EskomStageHistory")] CloudTable eskomStageHistoryTable,         // save entry in history
-            [Blob("current-stage/eskom.txt")] CloudBlockBlob currentEskomStage,     // update current stage
+            [TimerTrigger("0 0 * * * *")] TimerInfo myTimer,                         // once per hour
+            [Table("EskomStageHistory")] CloudTable eskomStageHistoryTable,          // save entry in history
+            [Blob("current-stage/eskom.txt")] CloudBlockBlob currentEskomStage,      // update current stage
+            [Queue(Queues.StageChanged)] ICollector<StageChanged> stageChangedQueue, // notify if stage changed
             ILogger log)
         {
-            log.LogInformation($"C# Timer trigger function executed at: {DateTime.Now}");
-            
-            var stage = await GetEskomStage();
+            // get previous stage
+            log.LogInformation($"Getting previous stage");
+            var previousStage = int.Parse(await currentEskomStage.DownloadTextAsync());
 
-            log.LogInformation($"Saving eskom stage {stage}");
-            var entity = new EskomStage(now: DateTimeOffset.UtcNow, stage: stage);
+            // get current stage
+            log.LogInformation($"Getting current stage");
+            var currentStage = await GetEskomStage();
+            var entity = new EskomStage(now: DateTimeOffset.UtcNow, stage: currentStage);
 
             // save the history
+            log.LogInformation($"Saving eskom stage {currentStage}");
             var operation = TableOperation.InsertOrReplace(entity);
             await eskomStageHistoryTable.ExecuteAsync(operation);
 
             // save current stage
-            await currentEskomStage.UploadTextAsync(stage.ToString());
+            await currentEskomStage.UploadTextAsync(currentStage.ToString());
+
+            // notify via stage changed queue
+            if (previousStage != currentStage)
+            {
+                log.LogInformation($"Stage changed from {previousStage} to {currentStage}");
+                stageChangedQueue.Add(new StageChanged
+                {
+                    PreviousStage = previousStage,
+                    CurrentStage = currentStage,
+                });
+            }
         }
 
         // https://github.com/daffster/mypowerstats/blob/master/getshedding.py
