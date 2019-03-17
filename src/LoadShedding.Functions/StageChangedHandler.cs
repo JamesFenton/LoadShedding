@@ -11,11 +11,10 @@ namespace LoadShedding.Functions
     public static class StageChangedHandler
     {
         [FunctionName("StageChanged")]
-        [return: TwilioSms(AccountSidSetting = "TwilioAccountSid", AuthTokenSetting = "TwilioAuthToken", From = "+13476090886")]
         public static void Run(
             [QueueTrigger(Queues.StageChanged)] StageChanged message,
             [Blob("notifications/people-to-notify.txt")] string peopleToNotify,
-            ICollector<CreateMessageOptions> sms,
+            [TwilioSms(AccountSidSetting = "TwilioAccountSid", AuthTokenSetting = "TwilioAuthToken", From = "+13476090886")] ICollector<CreateMessageOptions> sms,
             ILogger log)
         {
             log.LogInformation($"Stage changed from {message.PreviousStage} to {message.CurrentStage}");
