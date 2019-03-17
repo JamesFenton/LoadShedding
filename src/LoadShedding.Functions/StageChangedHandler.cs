@@ -10,20 +10,25 @@ namespace LoadShedding.Functions
 {
     public static class StageChangedHandler
     {
-        private static readonly string _NotificationNumber
-            = Environment.GetEnvironmentVariable("NotificationNumber");
-
         [FunctionName("StageChanged")]
         [return: TwilioSms(AccountSidSetting = "TwilioAccountSid", AuthTokenSetting = "TwilioAuthToken", From = "+13476090886")]
-        public static CreateMessageOptions Run(
+        public static void Run(
             [QueueTrigger(Queues.StageChanged)] StageChanged message,
+            [Blob("notifications/people-to-notify.txt")] string peopleToNotify,
+            ICollector<CreateMessageOptions> sms,
             ILogger log)
         {
             log.LogInformation($"Stage changed from {message.PreviousStage} to {message.CurrentStage}");
-            return new CreateMessageOptions(new PhoneNumber(_NotificationNumber))
+
+            var numbers = peopleToNotify.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            log.LogInformation($"Notifying {numbers.Length} people");
+            foreach (var number in numbers)
             {
-                Body = $"Loadshedding is now stage {message.CurrentStage} (was {message.PreviousStage})",
-            };
+                sms.Add(new CreateMessageOptions(new PhoneNumber(number))
+                {
+                    Body = $"Loadshedding is now stage {message.CurrentStage} (was {message.PreviousStage})",
+                });
+            }
         }
     }
 }
