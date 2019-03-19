@@ -69,20 +69,9 @@ namespace LoadShedding.Functions
                 => _http.GetStringAsync("http://loadshedding.eskom.co.za/LoadShedding/GetStatus"));
 
             // it returns "1" for stage 0, "2" for stage 1, "3" for stage 2 etc
-            switch (eskomResponse)
-            {
-                case "1":
-                    return 0;
-                case "2":
-                    return 1;
-                case "3":
-                    return 2;
-                case "4":
-                    return 3;
-                case "5":
-                    return 4;
-            }
-
+            if (int.TryParse(eskomResponse, out var stage))
+                return stage - 1;
+            
             throw new ArgumentException($"Cannot convert eskom response {eskomResponse}");
         }
     }
