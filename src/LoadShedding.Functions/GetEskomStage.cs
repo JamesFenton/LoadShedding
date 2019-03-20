@@ -26,9 +26,10 @@ namespace LoadShedding.Functions
             log.LogInformation($"Getting previous stage");
             var previousStage = int.Parse(await currentEskomStage.DownloadTextAsync());
 
-            // get current stage
+            // get current stage and save
             log.LogInformation($"Getting current stage");
             var currentStage = await _eskomService.GetEskomStage();
+            await currentEskomStage.UploadTextAsync(currentStage.ToString());
 
             // notify if stage changed
             if (previousStage != currentStage)
