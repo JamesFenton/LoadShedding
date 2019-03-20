@@ -26,15 +26,15 @@ namespace LoadShedding.Functions
             log.LogInformation($"Getting previous stage");
             var previousStage = int.Parse(await currentEskomStage.DownloadTextAsync());
 
-            // get current stage and save
+            // get current stage
             log.LogInformation($"Getting current stage");
             var currentStage = await _eskomService.GetEskomStage();
-            await currentEskomStage.UploadTextAsync(currentStage.ToString());
 
             // notify if stage changed
             if (previousStage != currentStage)
             {
-                log.LogInformation($"Stage changed from {previousStage} to {currentStage}");
+                log.LogInformation($"Stage changed from {previousStage} to {currentStage}. Saving.");
+                await currentEskomStage.UploadTextAsync(currentStage.ToString());
 
                 // send sms's
                 var numbers = peopleToNotify.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
