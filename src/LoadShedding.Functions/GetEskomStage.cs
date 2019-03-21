@@ -1,25 +1,23 @@
 using System;
 using System.Threading.Tasks;
-using LoadShedding.Functions.Models;
+using LoadShedding.Functions.Services;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Host;
 using Microsoft.Extensions.Logging;
 using Microsoft.WindowsAzure.Storage.Blob;
-using Twilio.Rest.Api.V2010.Account;
-using Twilio.Types;
 
 namespace LoadShedding.Functions
 {
     public static class GetEskomStage
     {
         private static readonly EskomService _eskomService = new EskomService();
+        private static readonly TwilioService _twilioService = new TwilioService();
 
         [FunctionName("GetEskomStage")]
         public static async Task Run(
             [TimerTrigger("0 */5 * * * *")] TimerInfo myTimer, // once every five minutes
             [Blob("stage-data/current-stage.txt")] CloudBlockBlob currentEskomStage, // update current stage
             [Blob("notifications/stage-changed-people-to-notify.txt")] string peopleToNotify, // new-line separated list of phone numbers
-            [TwilioSms(AccountSidSetting = "TwilioAccountSid", AuthTokenSetting = "TwilioAuthToken", From = "+13476090886")] ICollector<CreateMessageOptions> messagesToSend,
             ILogger log)
         {
             // get previous stage
@@ -39,12 +37,10 @@ namespace LoadShedding.Functions
                 // send sms's
                 var numbers = peopleToNotify.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
                 log.LogInformation($"Notifying {numbers.Length} people");
+                var message = $"Loadshedding is now stage {currentStage} (was {previousStage})";
                 foreach (var number in numbers)
                 {
-                    messagesToSend.Add(new CreateMessageOptions(new PhoneNumber(number))
-                    {
-                        Body = $"Loadshedding is now stage {currentStage} (was {previousStage})",
-                    });
+                    await _twilioService.SendSms(number, message);
                 }
             }
             else

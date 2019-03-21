@@ -5,7 +5,7 @@ using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LoadShedding.Functions
+namespace LoadShedding.Functions.Services
 {
     public class EskomService
     {
