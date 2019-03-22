@@ -8,19 +8,21 @@ using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using LoadShedding.Functions.Models;
 using System.Linq;
-using Microsoft.WindowsAzure.Storage.Table;
 using OfficeOpenXml;
+using Newtonsoft.Json;
 
 namespace LoadShedding.Functions
 {
     public static class UpdateSchedule
     {
         [FunctionName("UpdateSchedule")]
-        public static async Task Run(
+        public static void Run(
             [HttpTrigger(AuthorizationLevel.Function, "get", Route = null)] HttpRequest req,
-            [Table("LoadSheddingSchedule")] CloudTable loadSheddingSchedule,
+            [Blob(Blobs.Schedule, FileAccess.Write)] out string scheduleBlob,
             ILogger log)
         {
+            var schedule = new List<ScheduleEntry>();
+
             using (var stream = typeof(UpdateSchedule).Assembly.GetManifestResourceStream("LoadShedding.Functions.Schedule.xlsx"))
             using (var package = new ExcelPackage(stream))
             {
@@ -48,32 +50,28 @@ namespace LoadShedding.Functions
                                 .ToList();
 
                             // potentially multiple areas per time slot
-                            foreach(var area in areas)
+                            foreach (var area in areas)
                             {
-                                await Insert(new ScheduleEntry(day: day,
-                                                              startingHour: startingHour,
-                                                              area: area),
-                                             loadSheddingSchedule);
+                                schedule.Add(new ScheduleEntry(stage: stage,
+                                                               day: day,
+                                                               startingHour: startingHour,
+                                                               area: area));
 
                                 // days 17 to 31 are duplicates of 1 to 16
                                 if (day <= 15)
                                 {
-                                    await Insert(new ScheduleEntry(day: day + 16,
-                                                              startingHour: startingHour,
-                                                              area: area),
-                                                 loadSheddingSchedule);
+                                    schedule.Add(new ScheduleEntry(stage: stage,
+                                                                   day: day + 16,
+                                                                   startingHour: startingHour,
+                                                                   area: area));
                                 }
                             }
                         }
                     }
                 }
             }
-        }
 
-        private static async Task Insert(ScheduleEntry entry, CloudTable table)
-        {
-            var operation = TableOperation.InsertOrReplace(entry);
-            await table.ExecuteAsync(operation);
+            scheduleBlob = JsonConvert.SerializeObject(schedule);
         }
     }
 }

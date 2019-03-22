@@ -1,22 +1,23 @@
-﻿using Microsoft.WindowsAzure.Storage.Table;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
 
 namespace LoadShedding.Functions.Models
 {
-    public class ScheduleEntry : TableEntity
+    public class ScheduleEntry
     {
-        public int Area => int.Parse(PartitionKey);
-        public int Day => int.Parse(RowKey);
+        public int Stage { get; set; }
+        public int Area { get; set; }
+        public int Day { get; set; }
         public int StartingHour { get; set; }
 
         public ScheduleEntry() {}
 
-        public ScheduleEntry(int area, int day, int startingHour)
+        public ScheduleEntry(int stage, int area, int day, int startingHour)
         {
-            PartitionKey = area.ToString();
-            RowKey = day.ToString();
+            Stage = stage;
+            Area = area;
+            Day = day;
             StartingHour = startingHour;
         }
     }

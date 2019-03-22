@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using LoadShedding.Functions.Models;
 using LoadShedding.Functions.Services;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Host;
@@ -11,13 +12,12 @@ namespace LoadShedding.Functions
     public static class GetEskomStage
     {
         private static readonly EskomService _eskomService = new EskomService();
-        private static readonly TwilioService _twilioService = new TwilioService();
 
         [FunctionName("GetEskomStage")]
         public static async Task Run(
             [TimerTrigger("0 */5 * * * *")] TimerInfo myTimer, // once every five minutes
-            [Blob("stage-data/current-stage.txt")] CloudBlockBlob currentEskomStage, // update current stage
-            [Blob("notifications/stage-changed-people-to-notify.txt")] string peopleToNotify, // new-line separated list of phone numbers
+            [Blob(Blobs.CurrentStage)] CloudBlockBlob currentEskomStage, // update current stage
+            [Queue(Queues.Notifications)] ICollector<StageChanged> notificationsQueue,
             ILogger log)
         {
             // get previous stage
@@ -33,15 +33,11 @@ namespace LoadShedding.Functions
             {
                 log.LogInformation($"Stage changed from {previousStage} to {currentStage}. Saving.");
                 await currentEskomStage.UploadTextAsync(currentStage.ToString());
-
-                // send sms's
-                var numbers = peopleToNotify.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
-                log.LogInformation($"Notifying {numbers.Length} people");
-                var message = $"Loadshedding is now stage {currentStage} (was {previousStage})";
-                foreach (var number in numbers)
+                notificationsQueue.Add(new StageChanged
                 {
-                    await _twilioService.SendSms(number, message);
-                }
+                    PreviousStage = previousStage,
+                    CurrentStage = currentStage
+                });
             }
             else
             {
