@@ -13,5 +13,10 @@ variables:
   buildConfiguration: 'Release'
 
 steps:
-- script: dotnet publish --configuration $(buildConfiguration) --output '$(Build.ArtifactStagingDirectory)\Functions'
+- script: dotnet publish --configuration $(buildConfiguration) --output "$(Build.ArtifactStagingDirectory)\Functions"
   displayName: 'dotnet publish'
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    pathtoPublish: '$(Build.ArtifactStagingDirectory)' 
+    artifactName: 'drop' 
