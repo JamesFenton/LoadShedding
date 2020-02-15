@@ -6,19 +6,20 @@ using System.Threading.Tasks;
 
 namespace LoadShedding.Application.Services
 {
-    public class EskomService : IEskomService
+    public class EskomService
     {
         private readonly HttpClient _http;
 
         public EskomService(HttpClient http)
         {
             _http = http;
+
         }
 
         // https://github.com/daffster/mypowerstats/blob/master/getshedding.py
         public async Task<int> GetEskomStage()
         {
-            var eskomResponse = await _http.GetStringAsync("http://loadshedding.eskom.co.za/LoadShedding/GetStatus");
+            var eskomResponse = await _http.GetStringAsync("/LoadShedding/GetStatus");
 
             // it returns "1" for stage 0, "2" for stage 1, "3" for stage 2 etc
             if (int.TryParse(eskomResponse, out var stage) && stage >= 0)
