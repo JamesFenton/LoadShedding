@@ -14,10 +14,10 @@ using LoadShedding.Application.Models;
 
 namespace LoadShedding.Functions
 {
-    public static class UpdateSchedule
+    public class UpdateSchedule
     {
         [FunctionName("UpdateSchedule")]
-        public static void Run(
+        public void Run(
             [HttpTrigger(AuthorizationLevel.Function, "get", Route = null)] HttpRequest req,
             [Blob(Blobs.Schedule, FileAccess.Write)] out string scheduleBlob,
             ILogger log)
