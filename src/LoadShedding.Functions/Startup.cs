@@ -2,6 +2,8 @@
 using LoadShedding.Application.Settings;
 using Microsoft.Azure.Functions.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
+using Polly;
+using Polly.Extensions.Http;
 using System;
 using System.Collections.Generic;
 using System.Net.Http.Headers;
@@ -17,10 +19,15 @@ namespace LoadShedding.Functions
         {
             var services = builder.Services;
 
+            var retryPolicy = HttpPolicyExtensions
+              .HandleTransientHttpError()
+              .RetryAsync(3);
+
             services.AddHttpClient<EskomService>(h =>
             {
                 h.BaseAddress = new Uri("http://loadshedding.eskom.co.za");
-            });
+            })
+            .AddPolicyHandler(retryPolicy);
 
             var twilioSid = Environment.GetEnvironmentVariable("TwilioAccountSid");
             var twilioAuthToken = Environment.GetEnvironmentVariable("TwilioAuthToken");
@@ -34,7 +41,8 @@ namespace LoadShedding.Functions
             {
                 h.BaseAddress = new Uri("https://api.twilio.com");
                 h.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", cred);
-            });
+            })
+            .AddPolicyHandler(retryPolicy);
         }
     }
 }
