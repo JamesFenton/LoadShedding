@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace LoadShedding.Functions
+namespace LoadShedding.Application.Infrastructure
 {
-    abstract class Queues
+    public static class Queues
     {
         public const string Notifications = "notifications";
     }

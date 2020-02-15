@@ -1,35 +1,26 @@
-﻿using Polly;
-using Polly.Retry;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LoadShedding.Functions.Services
+namespace LoadShedding.Application.Services
 {
     public class TwilioService
     {
         private readonly string _from = "+13476090886";
         private readonly string _sid = Environment.GetEnvironmentVariable("TwilioAccountSid");
         private readonly string _token = Environment.GetEnvironmentVariable("TwilioAuthToken");
-        private readonly HttpClient _http = new HttpClient();
-        private readonly AsyncRetryPolicy _policy;
 
-        public TwilioService()
+        private readonly HttpClient _http;
+
+        public TwilioService(HttpClient http)
         {
+            _http = http;
+
             var cred = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{_sid}:{_token}"));
             _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", cred);
-            
-            _policy = Policy
-                .Handle<Exception>()
-                .WaitAndRetryAsync(new[]
-                {
-                    TimeSpan.FromSeconds(1),
-                    TimeSpan.FromSeconds(2),
-                    TimeSpan.FromSeconds(10),
-                });
         }
         
         public async Task SendSms(string to, string message)
@@ -43,7 +34,7 @@ namespace LoadShedding.Functions.Services
                 new KeyValuePair<string, string>("Body", message)
             });
 
-            await _policy.ExecuteAsync(() => _http.PostAsync(url, data));
+            await _http.PostAsync(url, data);
         }
     }
 }

@@ -2,23 +2,26 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using LoadShedding.Functions.Models;
-using LoadShedding.Functions.Services;
+using LoadShedding.Application.Infrastructure;
+using LoadShedding.Application.Models;
+using LoadShedding.Application.Services;
 using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Host;
 using Microsoft.Extensions.Logging;
-using Microsoft.WindowsAzure.Storage.Table;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace LoadShedding.Functions
 {
-    public static class NotifyOnStageChanged
+    public class NotifyOnStageChanged
     {
-        private static readonly TwilioService _twilioService = new TwilioService();
+        private readonly TwilioService _twilioService;
+
+        public NotifyOnStageChanged(TwilioService twilioService)
+        {
+            _twilioService = twilioService;
+        }
 
         [FunctionName("NotifyOnStageChanged")]
-        public static async Task Run(
+        public async Task Run(
             [QueueTrigger(Queues.Notifications)] StageChanged stageChanged,
             [Blob(Blobs.Schedule)] string scheduleBlob,
             [Blob(Blobs.StageChangedPeopleToNotify)] string peopleToNotifyBlob,

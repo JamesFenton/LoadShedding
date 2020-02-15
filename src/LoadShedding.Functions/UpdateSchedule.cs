@@ -6,10 +6,11 @@ using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
-using LoadShedding.Functions.Models;
 using System.Linq;
 using OfficeOpenXml;
 using Newtonsoft.Json;
+using LoadShedding.Application.Infrastructure;
+using LoadShedding.Application.Models;
 
 namespace LoadShedding.Functions
 {
