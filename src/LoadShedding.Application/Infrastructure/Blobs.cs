@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace LoadShedding.Functions
+namespace LoadShedding.Application.Infrastructure
 {
-    abstract class Blobs
+    public static class Blobs
     {
         public const string CurrentStage = "stage-data/current-stage.txt";
         public const string Schedule = "stage-data/schedule.json";

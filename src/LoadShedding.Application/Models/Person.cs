@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace LoadShedding.Functions.Models
+namespace LoadShedding.Application.Models
 {
     public class Person
     {

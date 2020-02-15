@@ -1,20 +1,26 @@
 using System;
 using System.Threading.Tasks;
-using LoadShedding.Functions.Models;
-using LoadShedding.Functions.Services;
+using LoadShedding.Application.Infrastructure;
+using LoadShedding.Application.Models;
+using LoadShedding.Application.Services;
 using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Host;
 using Microsoft.Extensions.Logging;
 using Microsoft.WindowsAzure.Storage.Blob;
 
 namespace LoadShedding.Functions
 {
-    public static class GetEskomStage
+    public class GetEskomStage
     {
-        private static readonly EskomService _eskomService = new EskomService();
+        private readonly EskomService _eskomService;
+
+        public GetEskomStage(EskomService eskomService)
+        {
+            _eskomService = eskomService;
+        }
+
 
         [FunctionName("GetEskomStage")]
-        public static async Task Run(
+        public async Task Run(
             [TimerTrigger("0 */5 * * * *")] TimerInfo myTimer, // once every five minutes
             [Blob(Blobs.CurrentStage)] CloudBlockBlob currentEskomStage, // update current stage
             [Queue(Queues.Notifications)] ICollector<StageChanged> notificationsQueue,
@@ -22,7 +28,7 @@ namespace LoadShedding.Functions
         {
             // get previous stage
             log.LogInformation($"Getting previous stage");
-            var previousStage = int.Parse(await currentEskomStage.DownloadTextAsync());
+            var previousStage = await GetPreviousStage(currentEskomStage);
 
             // get current stage
             log.LogInformation($"Getting current stage");
@@ -43,6 +49,14 @@ namespace LoadShedding.Functions
             {
                 log.LogInformation($"Stage unchanged at {currentStage}");
             }
+        }
+
+        private async Task<int> GetPreviousStage(CloudBlockBlob currentEskomStage)
+        {
+            if (await currentEskomStage.ExistsAsync())
+                return int.Parse(await currentEskomStage.DownloadTextAsync());
+
+            return 0;
         }
     }
 }

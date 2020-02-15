@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using LoadShedding.Functions.Models;
+using LoadShedding.Application.Models;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Extensions.Logging;
 using Microsoft.WindowsAzure.Storage.Blob;
@@ -10,10 +10,10 @@ using Microsoft.WindowsAzure.Storage.Table;
 
 namespace LoadShedding.Functions
 {
-    public static class SaveStageHistory
+    public class SaveStageHistory
     {
         [FunctionName("SaveStageHistory")]
-        public static async Task Run(
+        public async Task Run(
             [TimerTrigger("0 0 * * * *")] TimerInfo myTimer, // once per hour
             [Blob("stage-data/current-stage.txt")] CloudBlockBlob currentEskomStage, // get current stage
             [Table("EskomStageHistory")] CloudTable eskomStageHistoryTable, // save entry in history
